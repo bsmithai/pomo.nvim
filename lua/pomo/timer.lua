@@ -176,6 +176,11 @@ Timer.pause = function(self)
   if self.start_time ~= nil and not self.paused then
     self.paused_at = now()
     self.paused = true
+    for _, noti in ipairs(self.notifiers) do
+      if noti.pause ~= nil then
+        noti:pause()
+      end
+    end
   end
 end
 
@@ -188,6 +193,11 @@ Timer.resume = function(self)
     self.resumed_at = current_time
     self.paused_at = nil
     self.paused = false
+    for _, noti in ipairs(self.notifiers) do
+      if noti.resume ~= nil then
+        noti:resume()
+      end
+    end
   end
 end
 

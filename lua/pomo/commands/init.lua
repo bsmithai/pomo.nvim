@@ -9,6 +9,9 @@ local command_lookups = {
   TimerPause = "pomo.commands.timer_pause",
   TimerResume = "pomo.commands.timer_resume",
   TimerSession = "pomo.commands.timer_session",
+  TimerDay = "pomo.commands.timer_day",
+  TimerTodoAdd = "pomo.commands.timer_todo_add",
+  TimerTodoStart = "pomo.commands.timer_todo_start",
 }
 
 local M = setmetatable({}, {
@@ -63,6 +66,23 @@ M.register_all = function()
       return vim.tbl_keys(config.sessions or {})
     end,
   })
+
+  vim.api.nvim_create_user_command("TimerDay", function(data)
+    return M.TimerDay(data)
+  end, {
+    nargs = "?",
+    complete = function()
+      return vim.fn.reverse(require("pomo.todo").list_dates())
+    end,
+  })
+
+  vim.api.nvim_create_user_command("TimerTodoAdd", function(data)
+    return M.TimerTodoAdd(data)
+  end, { nargs = "+" })
+
+  vim.api.nvim_create_user_command("TimerTodoStart", function(data)
+    return M.TimerTodoStart(data)
+  end, { nargs = "?" })
 end
 
 return M

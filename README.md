@@ -62,9 +62,46 @@ In **pomo.nvim**, most of the functionality is surfaced through the [`Notifier`]
 
   To start the above session, use: `:TimerSession pomodoro`.
 
+- `:TimerDay [DATE]` to open the day view for today (or a given `YYYY-MM-DD` date). See [daily todos](#daily-todos) below.
+
+- `:TimerTodoAdd TITLE` to add a task to today's todo list, e.g. `:TimerTodoAdd Review PRs`.
+
+- `:TimerTodoStart [TIMELIMIT]` to pick one of today's unfinished tasks and start a pomodoro for it. Defaults to the `todo.duration` option.
+
 <br>
 
 **💡 Tip:** You can pass `-1` as the `TIMERID` to apply the command to all active timers.
+
+### Daily todos
+
+**pomo.nvim** can keep a todo list for each day and log every pomodoro you run against a task. `:TimerDay` opens a floating window with:
+
+- **Tasks**: today's todo list, with the time logged and pomodoros completed for each task, plus a live countdown for any task with a running timer.
+- **Timeline**: one row per hour, one cell per minute, color coded by task, so you can see when you worked on what and where the gaps were.
+- **Summary**: total focused time, the span of the day, total gap time, and each gap longer than `todo.min_gap` minutes.
+- **Sessions**: every stretch of time logged, with how it ended (done, stopped, or paused).
+
+Pausing a timer ends the current session and resuming starts a new one, so pauses show up as gaps. When today's list is first opened, unfinished tasks from your most recent previous day are carried over (see `todo.carry_over`).
+
+Keymaps in the day view:
+
+| Key | Action |
+| --- | --- |
+| `a` | Add a task |
+| `r` | Rename the task under the cursor |
+| `x` | Toggle the task done |
+| `d` | Delete the task (logged time is kept in the timeline) |
+| `J` / `K` | Move the task down / up |
+| `<CR>` / `s` | Start a pomodoro for the task, or pause/resume its running timer |
+| `S` | Start a pomodoro with a custom duration |
+| `p` | Pause / resume the task's timer |
+| `X` | Stop the task's timer |
+| `[` / `]` | Previous / next day |
+| `t` | Jump to today |
+| `R` | Reload from disk |
+| `q` / `<Esc>` | Close |
+
+The colors and other highlights can be customized with the `PomoTodo1`, `PomoTodo2`, ... (task colors), `PomoSection`, `PomoLabel`, `PomoMuted`, `PomoGap`, `PomoNow`, `PomoRunning`, `PomoPaused`, and `PomoDone` highlight groups.
 
 ## Setup
 
@@ -77,7 +114,7 @@ return {
   "epwalsh/pomo.nvim",
   version = "*",  -- Recommended, use latest release instead of latest commit
   lazy = true,
-  cmd = { "TimerStart", "TimerRepeat", "TimerSession" },
+  cmd = { "TimerStart", "TimerRepeat", "TimerSession", "TimerDay", "TimerTodoAdd", "TimerTodoStart" },
   dependencies = {
     -- Optional, but highly recommended if you want to use the "Default" timer
     "rcarriga/nvim-notify",
@@ -167,6 +204,27 @@ This is a complete list of all of the options that can be passed to `require("po
       { name = "Long Break", duration = "15m" },
     },
   },
+
+  -- Options for the daily todo lists and the ':TimerDay' view.
+  todo = {
+    -- Default length of a pomodoro started for a task.
+    duration = "25m",
+    -- Copy unfinished tasks from your most recent previous day into a new day's list.
+    carry_over = true,
+    -- Where the daily todo lists and time logs are stored (one JSON file per day).
+    data_dir = vim.fn.stdpath("data") .. "/pomo",
+    -- The timeline always shows at least these hours (start inclusive, end exclusive).
+    -- It's extended automatically to cover any sessions outside of this range.
+    start_hour = 9,
+    end_hour = 17,
+    -- Gaps shorter than this many minutes are counted but not listed in the summary.
+    min_gap = 5,
+    -- Colors assigned to tasks, in order.
+    colors = {
+      "#7aa2f7", "#9ece6a", "#e0af68", "#bb9af7", "#f7768e",
+      "#7dcfff", "#ff9e64", "#73daca", "#c0caf5", "#db4b4b",
+    },
+  },
 }
 ```
 
@@ -179,7 +237,7 @@ To define your own notifier you need to create a [`pomo.Notifier`](https://githu
 - `Notifier.done(self)` - Called when the timer finishes.
 - `Notifier.stop(self)` - Called when the timer is stopped before finishing.
 
-You can also provide optionally `Notifier.show(self)` and `Notifier.hide(self)` methods to respond to `:TimerShow` and `:TimerHide`.
+You can also provide optionally `Notifier.show(self)` and `Notifier.hide(self)` methods to respond to `:TimerShow` and `:TimerHide`, and `Notifier.pause(self)` and `Notifier.resume(self)` methods to respond to `:TimerPause` and `:TimerResume`.
 
 The factory `init` function takes 1 or 2 arguments, the `timer` (a `pomo.Timer`) and optionally a table of options from the `opts` field in the notifier's config.
 

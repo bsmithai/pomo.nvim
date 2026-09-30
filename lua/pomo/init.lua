@@ -15,11 +15,14 @@ M.setup = function(opts)
 
   -- Register commands.
   commands.register_all()
+
+  -- Make sure in-progress todo sessions get closed out when Neovim exits.
+  require("pomo.todo").setup_autocmds()
 end
 
 ---Start a new timer.
 ---@param time_limit integer The time limit, in seconds.
----@param opts string|{ name: string|?, repeat_n: integer|?, cfg: pomo.Config|?, timer_done: fun() }|?
+---@param opts string|{ name: string|?, repeat_n: integer|?, cfg: pomo.Config|?, timer_done: fun(), notifiers: (fun(timer: pomo.Timer): pomo.Notifier)[]|? }|?
 ---@return pomo.Timer timer
 M.start_timer = function(time_limit, opts)
   local Timer = require "pomo.timer"
@@ -32,6 +35,9 @@ M.start_timer = function(time_limit, opts)
   local cfg = opts.cfg or M.get_config()
   local timer_id = timers:first_available_id()
   local timer = Timer.new(timer_id, time_limit, opts.name, cfg, opts.repeat_n)
+  for _, init in ipairs(opts.notifiers or {}) do
+    timer.notifiers[#timer.notifiers + 1] = init(timer)
+  end
 
   timers:store(timer)
 
