@@ -8,6 +8,7 @@ local Config = {}
 ---@field timers table<string, pomo.NotifierConfig[]>
 ---@field sessions table<string, pomo.SessionConfig[]>  -- Add sessions field
 ---@field todo pomo.TodoConfig
+---@field slack pomo.SlackConfig
 
 ---@class pomo.NotifierConfig
 ---@field name pomo.NotifierType|?
@@ -56,6 +57,14 @@ Config.default = function()
         "#db4b4b",
       },
     },
+    slack = {
+      enabled = false,
+      token = nil,
+      token_env = "SLACK_USER_TOKEN",
+      emoji = ":tomato:",
+      format = "%s",
+      restore = true,
+    },
   }
 end
 
@@ -65,6 +74,7 @@ Config.normalize = function(opts)
   local default = Config.default()
   local config = vim.tbl_extend("force", default, opts)
   config.todo = vim.tbl_extend("force", default.todo, opts.todo or {})
+  config.slack = vim.tbl_extend("force", default.slack, opts.slack or {})
   return config
 end
 

@@ -101,6 +101,25 @@ Keymaps in the day view:
 | `R` | Reload from disk |
 | `q` / `<Esc>` | Close |
 
+#### Slack status
+
+**pomo.nvim** can set your Slack status to the task you're actively working on. While a task's timer is running (and not paused) your status is set to the task's title, and when no task timer is running your previous status is restored. If you have multiple task timers going, the most recently started or resumed one wins. The status is also given an expiration matching the timer, so Slack clears it on its own if Neovim exits unexpectedly.
+
+To set it up:
+
+1. Create a Slack app at <https://api.slack.com/apps> ("From scratch") in your workspace.
+2. Under **OAuth & Permissions**, add the `users.profile:read` and `users.profile:write` **User Token Scopes**.
+3. Install the app to your workspace and copy the **User OAuth Token** (starts with `xoxp-`).
+4. Export it as `SLACK_USER_TOKEN` (or see the `slack.token` option) and enable the integration:
+
+```lua
+require("pomo").setup({
+  slack = { enabled = true },
+})
+```
+
+This requires `curl`. The token is passed to `curl` over stdin, so it won't show up in your process list.
+
 The colors and other highlights can be customized with the `PomoTodo1`, `PomoTodo2`, ... (task colors), `PomoSection`, `PomoLabel`, `PomoMuted`, `PomoGap`, `PomoNow`, `PomoRunning`, `PomoPaused`, and `PomoDone` highlight groups.
 
 ## Setup
@@ -224,6 +243,22 @@ This is a complete list of all of the options that can be passed to `require("po
       "#7aa2f7", "#9ece6a", "#e0af68", "#bb9af7", "#f7768e",
       "#7dcfff", "#ff9e64", "#73daca", "#c0caf5", "#db4b4b",
     },
+  },
+
+  -- Set your Slack status to the task you're working on, see "Slack status" above.
+  slack = {
+    enabled = false,
+    -- A Slack user token (xoxp-...) or a function that returns one, e.g.
+    -- token = function() return vim.fn.system({ "pass", "show", "slack/token" }) end,
+    token = nil,
+    -- Environment variable to read the token from when 'token' isn't set.
+    token_env = "SLACK_USER_TOKEN",
+    -- Status emoji to use while a task is running.
+    emoji = ":tomato:",
+    -- Format string for the status text, given the task's title.
+    format = "%s",
+    -- Restore the status you had before the pomodoro, instead of clearing it.
+    restore = true,
   },
 }
 ```

@@ -16,6 +16,10 @@ M.setup = function(opts)
   -- Register commands.
   commands.register_all()
 
+  -- Set up the Slack status integration. This has to come before the todo autocmds so that the
+  -- previous status is restored before running sessions are closed out on exit.
+  require("pomo.slack").setup(M._config.slack)
+
   -- Make sure in-progress todo sessions get closed out when Neovim exits.
   require("pomo.todo").setup_autocmds()
 end

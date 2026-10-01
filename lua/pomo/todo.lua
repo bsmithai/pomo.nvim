@@ -36,6 +36,11 @@ local days = {}
 ---@type table<string, { timer: pomo.Timer, tracker: table }>
 local active = {}
 
+---Let listeners (like the Slack integration) know that the set of running todo sessions changed.
+local function emit_changed()
+  vim.api.nvim_exec_autocmds("User", { pattern = "PomoTodoChanged", modeline = false })
+end
+
 ---@param date string
 ---@param todo_id integer
 ---@return string
@@ -273,6 +278,7 @@ M.rename = function(day, todo_id, title)
   local todo = assert(M.get_todo(day, todo_id))
   todo.title = title
   M.save(day)
+  emit_changed()
 end
 
 ---Delete a todo. If it has any sessions logged it's only hidden so the time log stays intact.
@@ -338,6 +344,7 @@ local function tracker(date, todo_id)
       day.sessions[#day.sessions + 1] = session
       last_save = t
       M.save(day)
+      emit_changed()
     end
 
     ---@param status pomo.TodoSessionStatus
@@ -347,6 +354,7 @@ local function tracker(date, todo_id)
         session.status = status
         session = nil
         M.save(M.load(date))
+        emit_changed()
       end
     end
 
@@ -372,10 +380,14 @@ local function tracker(date, todo_id)
       close "paused"
     end
     self.stop = function()
-      close "stopped"
       active[active_key(date, todo_id)] = nil
+      close "stopped"
     end
     self._close = close
+    ---@return pomo.TodoSession|?
+    self.session = function()
+      return session
+    end
 
     return self
   end
@@ -388,6 +400,24 @@ end
 M.get_timer = function(date, todo_id)
   local entry = active[active_key(date, todo_id)]
   return entry and entry.timer or nil
+end
+
+---Get the todo that's actively being worked on, i.e. the one with the most recently started session among
+---the running, unpaused timers.
+---@return { date: string, todo: pomo.Todo, timer: pomo.Timer, session: pomo.TodoSession }|?
+M.current = function()
+  local best
+  for key, entry in pairs(active) do
+    local session = entry.tracker.session()
+    if session ~= nil and (best == nil or session.start >= best.session.start) then
+      local date, todo_id = key:match "^(.+):(%d+)$"
+      local t = M.get_todo(M.load(date), tonumber(todo_id) --[[@as integer]])
+      if t ~= nil then
+        best = { date = date, todo = t, timer = entry.timer, session = session }
+      end
+    end
+  end
+  return best
 end
 
 ---Start a pomodoro for a todo on today's list.
